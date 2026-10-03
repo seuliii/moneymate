@@ -1,0 +1,3 @@
+@page
+@model IndexModel
+<section class="hero"><div><h1>MoneyMate AI</h1><p>나의 수입과 지출을 기록하는 가계부</p>@if (User.Identity?.IsAuthenticated == true) { <a class="primary" asp-page="/Account/Index">내 계정 보기</a> } else { <a class="primary" asp-page="/Account/Register">회원가입</a> }</div></section>

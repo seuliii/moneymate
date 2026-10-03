@@ -1,0 +1,17 @@
+@page
+@model MoneyMate.Pages.Account.LoginModel
+@{ ViewData["Title"] = "로그인"; }
+<section class="account-wrap">
+    <div class="account-intro"><span class="eyebrow">WELCOME BACK</span><h1>반가워요.<br /><span>나의 기록을 이어가세요.</span></h1><p>내 계정으로 로그인하고<br />MoneyMate를 시작하세요.</p></div>
+    <div class="account-card"><h2>로그인</h2><p class="form-description">가입한 이메일과 비밀번호를 입력해주세요.</p>
+        @if (TempData["AccountMessage"] is string message) { <p class="notice" role="status">@message</p> }
+        <form method="post">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="All" class="validation" role="alert"></div>
+            <div class="field"><label asp-for="Input.Email">이메일</label><input asp-for="Input.Email" type="email" autocomplete="username" maxlength="254" required /></div>
+            <div class="field"><label asp-for="Input.Password">비밀번호</label><input asp-for="Input.Password" autocomplete="current-password" maxlength="128" required /></div>
+            <button class="primary full-width" type="submit">로그인</button>
+        </form>
+        <p class="form-switch">처음 방문했나요? <a asp-page="/Account/Register">회원가입</a></p>
+    </div>
+</section>
