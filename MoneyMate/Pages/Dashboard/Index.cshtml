@@ -1,0 +1,57 @@
+@page
+@model MoneyMate.Pages.Dashboard.IndexModel
+@using System.Globalization
+@using MoneyMate.Pages.Dashboard
+@{ ViewData["Title"] = "월별 통계"; }
+@if (Model.ErrorMessage is { } error)
+{
+    <section class="error-page"><span class="eyebrow">MY MONTHLY OVERVIEW</span><h1>통계를 잠시 불러올 수 없습니다.</h1><p role="alert">@error</p><p>데이터를 확인하지 못했으므로 금액을 표시하지 않습니다.</p><a asp-page="/Dashboard/Index" asp-route-month="@Model.Month">다시 시도하기</a></section>
+}
+else
+{
+var report = Model.Report; var comparison = report.Comparison;
+<section class="dashboard-page">
+    <div class="transactions-heading"><div><span class="eyebrow">MY MONTHLY OVERVIEW</span><h1>기록으로 보는 나의 한 달</h1><p>등록된 거래 기준 · @report.Period.Start.ToString("yyyy-MM-dd") ~ @report.Period.End.ToString("yyyy-MM-dd") · @report.Period.Days 일</p></div><a class="primary" asp-page="/Transactions/Create">+ 거래 등록</a></div>
+    <form method="get" class="month-picker"><label for="dashboard-month">조회 월</label><input id="dashboard-month" name="month" value="@Model.Month" type="month" max="@Model.CurrentMonth" required /><button class="secondary">조회</button></form>
+    @if (report.RecordCount == 0) { <p class="notice" role="status">이 기간에는 등록된 기록이 없습니다. 표시된 0원은 실제 소비가 없었다는 뜻이 아닙니다. <a asp-page="/Transactions/Create">첫 거래 기록하기 →</a></p> }
+    <div class="summary-grid">
+        <article class="stat-card"><span>총 수입</span><strong>@IndexModel.Money(report.Income)</strong><small>@report.RecordCount 건의 수입·지출 기록 기준</small></article>
+        <article class="stat-card"><span>총 지출</span><strong>@IndexModel.Money(report.Expense)</strong><small>카테고리별 지출 합계</small></article>
+        <article class="stat-card"><span>월간 수지</span><strong>@IndexModel.Money(report.Net)</strong><small>수입 − 지출 · 실제 계좌 잔액과 다릅니다.</small></article>
+        <article class="stat-card"><span>일평균 지출</span><strong>@Math.Round(report.DailyAverageExpense, 0, MidpointRounding.AwayFromZero).ToString("N0")원</strong><small>집계 기간의 달력 @report.Period.Days 일 기준</small></article>
+    </div>
+    <div class="dashboard-columns">
+        <section class="dashboard-card"><h2>카테고리별 지출</h2><p class="dashboard-note">금액과 전체 지출에서 차지하는 비중</p>
+            @if (report.Expense == 0) { <p class="dashboard-note">등록된 지출이 없어 비중을 계산하지 않습니다.</p> }
+            @foreach (var category in report.Categories.Where(x => x.Amount > 0)) {
+                <div class="category-stat"><div><strong>@category.Name</strong><span>@IndexModel.Money(category.Amount) · @(category.SharePercent?.ToString("0.0"))%</span></div><div class="share-track" aria-hidden="true"><span style="width:@(category.SharePercent?.ToString("0.##", CultureInfo.InvariantCulture))%"></span></div></div>
+            }
+            @if (report.TopCategories.Count > 0) { <p class="dashboard-note">최다 지출: @string.Join(", ", report.TopCategories.Select(x => x.Name))</p> }
+        </section>
+        <section class="dashboard-card"><h2>전월과 비교</h2>
+            @if (comparison.PreviousPeriod is { } prior) { <p class="dashboard-note">전월 @prior.Start.ToString("yyyy-MM-dd") ~ @prior.End.ToString("yyyy-MM-dd") · @prior.Days 일</p> }
+            @if (comparison.Status == "no_previous_records") { <p>전월 비교 기간에 기록이 없어 증감액·증감률을 계산하지 않습니다.</p> }
+            else {
+                <p class="comparison-amount">@IndexModel.Change(comparison.ChangeAmount!.Value)</p>
+                <p>전월 지출 @IndexModel.Money(comparison.PreviousExpense!.Value)</p>
+                @if (comparison.ChangePercent is { } percentage) { <p>지출 증감률 @(percentage > 0 ? "+" : "")@percentage.ToString("0.0")%</p> }
+                else { <p class="dashboard-note">전월에 기록은 있지만 지출이 0원이므로 증감률을 계산하지 않습니다.</p> }
+            }
+            @if (comparison.DifferentDayCounts) { <p class="notice">두 기간의 달력 일수가 다릅니다. 일수 차이를 보정하지 않은 금액 비교입니다.</p> }
+            <p class="dashboard-note">등록된 기록의 변화이며 과소비 여부를 판단하지 않습니다.</p>
+        </section>
+    </div>
+    @if (comparison.Status != "no_previous_records" && report.Categories.Count > 0) {
+        <section class="dashboard-card"><h2>카테고리별 전월 비교</h2><div class="table-wrapper"><table class="transaction-table"><thead><tr><th>카테고리</th><th>이번 기간</th><th>전월 기간</th><th>증감액</th><th>증감률</th></tr></thead><tbody>
+            @foreach (var category in report.Categories) { <tr><td>@category.Name</td><td>@IndexModel.Money(category.Amount)</td><td>@IndexModel.Money(category.PreviousAmount!.Value)</td><td>@IndexModel.Change(category.ChangeAmount!.Value)</td><td>@(category.ChangePercent is { } percent ? percent.ToString("0.0") + "%" : "계산 불가 (전월 0원)")</td></tr> }
+        </tbody></table></div></section>
+    }
+    <section class="dashboard-card"><h2>가장 큰 단일 지출</h2>
+        @if (report.LargestExpenses.Count == 0) { <p class="dashboard-note">등록된 지출이 없습니다.</p> }
+        @foreach (var item in report.LargestExpenses) { <div class="largest-expense"><div><a asp-page="/Transactions/Edit" asp-route-id="@item.Id">@item.Title</a><small>@item.TransactionDate.ToString("yyyy-MM-dd")</small></div><strong>@IndexModel.Money(item.Amount)</strong></div> }
+    </section>
+    <p class="dashboard-note">수지와 통계는 등록된 기록만 반영합니다. 누락된 기록과 계좌 잔액·저축액은 포함하지 않습니다. @(report.IsCurrentMonth ? "현재 월은 한국 기준 오늘까지 집계합니다." : "달력상 완료된 월이며 기록이 완전하다는 뜻은 아닙니다.")</p>
+    <a class="secondary" asp-page="/Transactions/Index" asp-route-month="@Model.Month">이달 거래 목록 보기 →</a>
+    <a class="secondary" asp-page="/Reports/Index" asp-route-month="@Model.Month">소비 리포트 보기 →</a>
+</section>
+}

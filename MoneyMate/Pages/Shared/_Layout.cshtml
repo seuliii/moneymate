@@ -7,6 +7,7 @@
     <title>@ViewData["Title"] · MoneyMate AI</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/transactions.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
 <body>
     <header class="header">
@@ -15,6 +16,7 @@
         @if (User.Identity?.IsAuthenticated == true)
         {
             <a asp-page="/Transactions/Index">거래</a>
+            <a asp-page="/Dashboard/Index">통계</a>
             <a class="account-link" asp-page="/Account/Index">@(User.FindFirst("display_name")?.Value ?? "내 계정") 님</a>
             <form method="post" asp-page="/Account/Logout"><button class="nav-button" type="submit">로그아웃</button></form>
         }
