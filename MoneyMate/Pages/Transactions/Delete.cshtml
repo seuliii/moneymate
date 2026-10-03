@@ -1,0 +1,7 @@
+@page "{id:guid}"
+@model MoneyMate.Pages.Transactions.DeleteModel
+@{ ViewData["Title"] = "거래 삭제 확인"; }
+<section class="transaction-form-wrap"><a class="back-link" asp-page="/Transactions/Index">← 거래 목록</a><h1>거래를 삭제할까요?</h1>
+<div class="account-card"><h2>@Model.Item.Title</h2><p>@Model.Item.TransactionDate.ToString("yyyy-MM-dd") · @Model.Item.CategoryName · @Model.Item.Amount.ToString("N0")원</p><p class="form-hint">삭제하면 복구할 수 없습니다. 연결된 월 통계와 분석 기준도 변경됩니다.</p>
+    <form method="post"><input type="hidden" asp-for="Version" /><div asp-validation-summary="All" class="validation" role="alert"></div><label class="delete-confirm"><input asp-for="ConfirmDeletion" /> 삭제할 거래를 확인했습니다.</label><div class="form-actions"><button class="danger" type="submit">거래 삭제</button><a asp-page="/Transactions/Index">취소</a><a href="@HttpContext.Request.Path">최신 내용 다시 불러오기</a></div></form>
+</div></section>

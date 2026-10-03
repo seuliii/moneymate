@@ -5,5 +5,5 @@
     <span class="eyebrow">MY MONEYMATE</span><h1>@Model.CurrentUser.DisplayName 님,<br /><span>가계부를 시작할 준비가 됐어요.</span></h1>
     <p class="overview-description">로그인한 내 계정의 정보입니다.</p>
     <div class="profile-card"><h2>내 계정</h2><dl><dt>이름</dt><dd>@Model.CurrentUser.DisplayName</dd><dt>이메일</dt><dd>@Model.CurrentUser.Email</dd><dt>가입일</dt><dd>@TimeZoneInfo.ConvertTimeBySystemTimeZoneId(Model.CurrentUser.CreatedAt, "Asia/Seoul").ToString("yyyy-MM-dd")</dd></dl></div>
+    <div class="next-step"><span class="step-number">MY RECORDS</span><h2>첫 거래를 기록해보세요.</h2><p>수입과 지출을 등록하고, 거래 목록에서 수정하거나 삭제할 수 있습니다.</p><a class="primary" asp-page="/Transactions/Index">거래 목록으로 이동</a></div>
 </section>
-

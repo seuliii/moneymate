@@ -1,0 +1,32 @@
+@page
+@model MoneyMate.Pages.Transactions.IndexModel
+@{ ViewData["Title"] = "거래 목록"; }
+<section class="transactions-page">
+    <div class="transactions-heading"><div><span class="eyebrow">MY TRANSACTIONS</span><h1>나의 거래 기록</h1><p>수입과 지출을 기록하고 월별로 살펴보세요.</p></div><a class="primary" asp-page="/Transactions/Create">+ 거래 등록</a></div>
+    @if (TempData["TransactionMessage"] is string message) { <p class="notice" role="status">@message</p> }
+    <form method="get" class="transaction-filters">
+        <div class="field"><label asp-for="Month">조회 월</label><input asp-for="Month" type="month" max="@Model.CurrentMonth" required /></div>
+        <div class="field"><label asp-for="Type">유형</label><select asp-for="Type"><option value="">전체</option><option value="expense">지출</option><option value="income">수입</option></select></div>
+        <div class="field"><label asp-for="CategoryId">카테고리</label><select asp-for="CategoryId"><option value="">전체</option>@foreach (var category in Model.Categories) { <option value="@category.Id">@category.Name (@(category.Type == "income" ? "수입" : "지출"))</option> }</select></div>
+        <button class="secondary" type="submit">조회</button>
+    </form>
+    <div class="list-caption"><h2>@Model.Month 거래 내역</h2><span>@Model.Records.TotalCount.ToString("N0")건 · 등록된 거래 기준</span></div>
+    @if (Model.Records.Items.Count == 0)
+    {
+        <div class="empty-transactions"><span aria-hidden="true">＋</span><h2>조회 조건에 맞는 거래가 없습니다.</h2><p>첫 수입이나 지출을 기록해보세요.</p><a asp-page="/Transactions/Create">거래 등록하기 →</a></div>
+    }
+    else
+    {
+        <div class="table-wrapper"><table class="transaction-table"><thead><tr><th scope="col">내용 / 날짜</th><th scope="col">카테고리</th><th scope="col">금액</th><th scope="col">관리</th></tr></thead><tbody>
+        @foreach (var item in Model.Records.Items)
+        {
+            <tr><td><strong>@item.Title</strong><small>@item.TransactionDate.ToString("yyyy-MM-dd")</small>@if (item.Memo is not null) { <small class="memo-preview">@item.Memo</small> }</td><td><span class="category-label">@item.CategoryName</span></td><td class="money @(item.Type == "income" ? "income" : "expense")">@(item.Type == "income" ? "+" : "−")@item.Amount.ToString("N0")원</td><td><div class="row-actions"><a asp-page="/Transactions/Edit" asp-route-id="@item.Id">수정</a><a asp-page="/Transactions/Delete" asp-route-id="@item.Id">삭제</a></div></td></tr>
+        }
+        </tbody></table></div>
+    }
+    <nav class="pagination" aria-label="거래 페이지">
+        @if (Model.PageNumber > 1) { <a asp-page="/Transactions/Index" asp-route-month="@Model.Month" asp-route-type="@Model.Type" asp-route-categoryId="@Model.CategoryId" asp-route-pageNumber="@(Model.PageNumber - 1)">← 이전</a> }
+        <span>@Model.PageNumber / @Model.Records.TotalPages 페이지</span>
+        @if (Model.PageNumber < Model.Records.TotalPages) { <a asp-page="/Transactions/Index" asp-route-month="@Model.Month" asp-route-type="@Model.Type" asp-route-categoryId="@Model.CategoryId" asp-route-pageNumber="@(Model.PageNumber + 1)">다음 →</a> }
+    </nav>
+</section>

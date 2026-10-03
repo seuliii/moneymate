@@ -1,0 +1,22 @@
+@model MoneyMate.Pages.Transactions.TransactionFormPageModel
+<section class="transaction-form-wrap">
+    <a class="back-link" asp-page="/Transactions/Index">← 거래 목록</a>
+    <div class="section-title"><div><span class="eyebrow">MY TRANSACTIONS</span><h1>@(Model.IsEdit ? "거래 수정" : "새 거래 기록")</h1></div></div>
+    <div class="account-card transaction-form">
+        <form method="post">
+            <input type="hidden" asp-for="Input.Version" />
+            <div asp-validation-summary="All" class="validation" role="alert"></div>
+            <div class="form-grid">
+                <div class="field"><label for="transaction-type">거래 유형</label><select asp-for="Input.Type" id="transaction-type"><option value="expense">지출</option><option value="income">수입</option></select></div>
+                <div class="field"><label asp-for="Input.Amount">금액 (원)</label><input asp-for="Input.Amount" type="number" min="1" max="1000000000" step="1" required /></div>
+                <div class="field"><label for="transaction-category">카테고리</label><select asp-for="Input.CategoryId" id="transaction-category">@foreach (var category in Model.Categories) { <option value="@category.Id" data-type="@category.Type">@category.Name (@(category.Type == "income" ? "수입" : "지출"))</option> }</select></div>
+                <div class="field"><label asp-for="Input.TransactionDate">거래일</label><input asp-for="Input.TransactionDate" type="date" max="@Model.Today.ToString("yyyy-MM-dd")" required /></div>
+            </div>
+            <div class="field"><label asp-for="Input.Title">내용</label><input asp-for="Input.Title" maxlength="100" placeholder="예: 점심, 월급" required /></div>
+            <div class="field"><label asp-for="Input.Memo">메모 (선택)</label><textarea asp-for="Input.Memo" rows="3" maxlength="500" placeholder="기억할 내용을 적어주세요."></textarea></div>
+            <p class="form-hint">금액은 양의 정수로 입력합니다. 계좌 이체와 저축계좌 이동은 입력하지 않고, 카드대금 납부를 구매 거래와 중복 기록하지 않습니다.</p>
+            <div class="form-actions"><button class="primary" type="submit">@(Model.IsEdit ? "수정 저장" : "거래 등록")</button><a asp-page="/Transactions/Index">취소</a>@if (Model.IsEdit) { <a href="@Context.Request.Path">최신 내용 다시 불러오기</a> }</div>
+        </form>
+    </div>
+</section>
+<script src="~/js/transaction-form.js" asp-append-version="true" defer></script>
