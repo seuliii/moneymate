@@ -22,7 +22,7 @@ builder.Services.AddDbContext<MoneyMateDbContext>(options =>
 builder.Services.AddScoped<DatabaseStatusService>();
 builder.Services.AddSingleton<KoreanClock>();
 builder.Services.AddScoped<TransactionService>();
-
+builder.Services.AddScoped<StatisticsService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
