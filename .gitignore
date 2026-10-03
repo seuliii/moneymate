@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.vs/
+.cli-home/
+.packages/
+.tools/
+**/*.csproj.user
+**/appsettings.Local.json
+.env
+*.log
+artifacts/
