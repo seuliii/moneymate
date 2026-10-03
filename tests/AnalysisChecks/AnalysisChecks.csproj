@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Compile Include="../../MoneyMate/Contracts/StatisticsContracts.cs" Link="StatisticsContracts.cs" />
+    <Compile Include="../../MoneyMate/Contracts/AnalysisContracts.cs" Link="AnalysisContracts.cs" />
+    <Compile Include="../../MoneyMate/Services/AnalysisClient.cs" Link="AnalysisClient.cs" />
+    <Compile Include="../../MoneyMate/Services/AnalysisContract.cs" Link="AnalysisContract.cs" />
+    <Compile Include="../../MoneyMate/Services/AnalysisGuard.cs" Link="AnalysisGuard.cs" />
+  </ItemGroup>
+</Project>

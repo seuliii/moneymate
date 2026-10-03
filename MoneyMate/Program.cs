@@ -23,6 +23,19 @@ builder.Services.AddScoped<DatabaseStatusService>();
 builder.Services.AddSingleton<KoreanClock>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<StatisticsService>();
+builder.Services.AddOptions<AnalysisOptions>().Bind(builder.Configuration.GetSection("Analysis"))
+    .Validate(x => x.Mode is "Mock" or "Http" && x.DailyAttempts is >= 1 and <= 100 && x.TimeoutSeconds is >= 1 and <= 25
+        && !string.IsNullOrWhiteSpace(x.ModelKey) && x.ModelKey.Length <= 80
+        && (x.Mode == "Mock" || (Uri.TryCreate(x.BaseUrl, UriKind.Absolute, out var uri)
+            && (uri.Scheme == "https" || uri.Scheme == "http" && uri.IsLoopback)
+            && !string.IsNullOrWhiteSpace(x.ServiceKey))), "Analysis 설정을 확인해주세요.").ValidateOnStart();
+builder.Services.AddSingleton<AnalysisGuard>();
+builder.Services.AddSingleton<MockAnalysisClient>();
+builder.Services.AddHttpClient<HttpAnalysisClient>(client => { client.Timeout = Timeout.InfiniteTimeSpan; })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddScoped<IAnalysisClient>(services => services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AnalysisOptions>>().Value.Mode == "Mock"
+    ? services.GetRequiredService<MockAnalysisClient>() : services.GetRequiredService<HttpAnalysisClient>());
+builder.Services.AddScoped<ReportService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -104,4 +117,3 @@ app.MapRazorPages();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 // Schema changes are applied explicitly through EF migrations, never on web startup.
 app.Run();
-

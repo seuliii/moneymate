@@ -1,0 +1,38 @@
+{
+  "contractVersion": "1.0",
+  "requestId": "00000000-0000-4000-8000-000000000001",
+  "report": {
+    "summary": {
+      "text": "등록된 9월 지출은 154,500원으로 전월보다 34,500원 증가했습니다.",
+      "evidenceIds": [
+        "expense.total",
+        "comparison.delta"
+      ]
+    },
+    "highlights": [
+      {
+        "text": "쇼핑 지출은 120,000원으로 전체 지출의 약 77.7%입니다.",
+        "evidenceIds": [
+          "category.expense_shopping.amount",
+          "category.expense_shopping.share"
+        ]
+      }
+    ],
+    "changesToReview": [
+      {
+        "text": "쇼핑 지출이 전월보다 30,000원 증가했습니다. 일회성 구매인지 확인해볼 수 있습니다.",
+        "evidenceIds": [
+          "category.expense_shopping.delta"
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "text": "다음 달 쇼핑 예정 항목을 기록해보세요.",
+        "evidenceIds": [
+          "category.expense_shopping.amount"
+        ]
+      }
+    ]
+  }
+}

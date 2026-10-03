@@ -1,0 +1,196 @@
+{
+  "contractVersion": "1.0",
+  "requestId": "00000000-0000-4000-8000-000000000001",
+  "locale": "ko-KR",
+  "currency": "KRW",
+  "timeZone": "Asia/Seoul",
+  "dataVersion": 9,
+  "asOfDate": "2026-10-01",
+  "month": "2026-09",
+  "isCalendarMonthComplete": true,
+  "period": {
+    "start": "2026-09-01",
+    "endInclusive": "2026-09-30",
+    "days": 30
+  },
+  "recordingCoverage": "unknown",
+  "recordCount": 5,
+  "facts": [
+    {
+      "id": "income.total",
+      "value": 3500000,
+      "unit": "KRW"
+    },
+    {
+      "id": "expense.total",
+      "value": 154500,
+      "unit": "KRW"
+    },
+    {
+      "id": "net.total",
+      "value": 3345500,
+      "unit": "KRW"
+    },
+    {
+      "id": "expense.dailyAverage",
+      "value": 5150,
+      "unit": "KRW"
+    },
+    {
+      "id": "comparison.previousExpense",
+      "value": 120000,
+      "unit": "KRW"
+    },
+    {
+      "id": "comparison.delta",
+      "value": 34500,
+      "unit": "KRW"
+    },
+    {
+      "id": "comparison.rate",
+      "value": 28.75,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_food.amount",
+      "value": 12000,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_food.share",
+      "value": 7.77,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_food.delta",
+      "value": 0,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_food.rate",
+      "value": 0,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_cafe.amount",
+      "value": 5500,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_cafe.share",
+      "value": 3.56,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_cafe.delta",
+      "value": 4500,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_cafe.rate",
+      "value": 450,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_shopping.amount",
+      "value": 120000,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_shopping.share",
+      "value": 77.67,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_shopping.delta",
+      "value": 30000,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_shopping.rate",
+      "value": 33.33,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_subscription.amount",
+      "value": 17000,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_subscription.share",
+      "value": 11,
+      "unit": "percent"
+    },
+    {
+      "id": "category.expense_subscription.delta",
+      "value": 0,
+      "unit": "KRW"
+    },
+    {
+      "id": "category.expense_subscription.rate",
+      "value": 0,
+      "unit": "percent"
+    }
+  ],
+  "categories": [
+    {
+      "code": "expense_food",
+      "name": "식비",
+      "amount": 12000,
+      "previousAmount": 12000,
+      "deltaAmount": 0,
+      "changeRatePercent": 0,
+      "sharePercent": 7.77
+    },
+    {
+      "code": "expense_cafe",
+      "name": "카페",
+      "amount": 5500,
+      "previousAmount": 1000,
+      "deltaAmount": 4500,
+      "changeRatePercent": 450,
+      "sharePercent": 3.56
+    },
+    {
+      "code": "expense_shopping",
+      "name": "쇼핑",
+      "amount": 120000,
+      "previousAmount": 90000,
+      "deltaAmount": 30000,
+      "changeRatePercent": 33.33,
+      "sharePercent": 77.67
+    },
+    {
+      "code": "expense_subscription",
+      "name": "구독",
+      "amount": 17000,
+      "previousAmount": 17000,
+      "deltaAmount": 0,
+      "changeRatePercent": 0,
+      "sharePercent": 11
+    }
+  ],
+  "comparison": {
+    "status": "comparable",
+    "mode": "full_month",
+    "previousPeriod": {
+      "start": "2026-08-01",
+      "endInclusive": "2026-08-31",
+      "days": 31
+    },
+    "differentDayCounts": true
+  },
+  "largestExpenses": [
+    {
+      "date": "2026-09-05",
+      "categoryCode": "expense_shopping",
+      "amount": 120000
+    }
+  ],
+  "limitations": [
+    "기록 완전성은 확인되지 않았습니다.",
+    "월간 수지는 실제 계좌 잔액이나 저축액이 아닙니다.",
+    "장기 추세 분석 데이터는 제공하지 않았습니다.",
+    "비교 기간의 달력 일수가 다릅니다."
+  ]
+}
