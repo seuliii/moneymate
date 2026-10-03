@@ -21,7 +21,7 @@ builder.Services.AddDbContext<MoneyMateDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MoneyMate")));
 builder.Services.AddScoped<DatabaseStatusService>();
 builder.Services.AddSingleton<KoreanClock>();
-
+builder.Services.AddScoped<TransactionService>();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
