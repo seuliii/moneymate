@@ -17,6 +17,7 @@
         {
             <a asp-page="/Transactions/Index">거래</a>
             <a asp-page="/Dashboard/Index">통계</a>
+            <a asp-page="/Reports/Index">리포트</a>
             <a class="account-link" asp-page="/Account/Index">@(User.FindFirst("display_name")?.Value ?? "내 계정") 님</a>
             <form method="post" asp-page="/Account/Logout"><button class="nav-button" type="submit">로그아웃</button></form>
         }
@@ -30,4 +31,3 @@
     <footer>MoneyMate AI <span>기록에서 시작하는 소비 관리</span></footer>
 </body>
 </html>
-

@@ -1,0 +1,5 @@
+@model MoneyMate.Contracts.ReportStatement
+@using MoneyMate.Contracts
+@using MoneyMate.Pages.Reports
+@{ var input = (AnalysisInput)ViewData["ReportInput"]!; }
+<div class="report-statement"><p>@Model.Text</p><small class="dashboard-note">근거: @string.Join(" · ", Model.EvidenceIds.Select(id => IndexModel.EvidenceLabel(id, input)))</small></div>
