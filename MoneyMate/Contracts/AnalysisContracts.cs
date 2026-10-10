@@ -25,5 +25,9 @@ public sealed record ReportContent([property: JsonRequired] ReportStatement Summ
 public sealed record AnalysisOutput([property: JsonRequired] string ContractVersion, [property: JsonRequired] Guid RequestId,
     [property: JsonRequired] ReportContent Report);
 public sealed record SavedReport(Guid Id, string Month, DateTimeOffset GeneratedAt, long DataVersion, DateOnly AsOfDate,
-    string Mode, bool NeedsRefresh, IReadOnlyList<string> RefreshReasons, AnalysisInput Input, ReportContent Report);
+    string Mode, bool NeedsRefresh, IReadOnlyList<string> RefreshReasons, AnalysisInput Input, ReportContent Report)
+{
+    // UI metadata comes from the stored model key; preserve the public JSON contract.
+    [JsonIgnore] public bool IsStub { get; init; }
+}
 public sealed record ReportResult(SavedReport? Value, int Status, string? Code = null, string? Message = null);

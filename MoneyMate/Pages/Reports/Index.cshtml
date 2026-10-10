@@ -3,15 +3,18 @@
 @{ ViewData["Title"] = "소비 리포트"; }
 <section class="dashboard-page reports-page">
     <span class="eyebrow">MY CONSUMPTION REPORT</span><h1>기록을 돌아보는 소비 리포트</h1>
-    <p class="dashboard-note">@(Model.IsMock ? "현재는 연결 확인용 모의 리포트입니다. 외부 AI로 데이터를 전송하지 않습니다." : "분석을 요청하면 소비 통계가 외부 분석 서비스로 전달됩니다. 이름·이메일·거래 내용·메모는 전송하지 않습니다.")</p>
+    @if (Model.IsStub) { <p class="notice" role="status">현재는 Python 연결 확인용 테스트 분석입니다. 정해진 규칙으로 리포트를 만들며 실제 AI 모델은 호출하지 않습니다.</p> }
+    <p class="dashboard-note">@(Model.IsMock ? "현재는 연결 확인용 모의 리포트입니다. 외부 AI로 데이터를 전송하지 않습니다." : "분석을 요청하면 소비 통계가 연결된 Python 분석 서비스로 전달됩니다. 이름·이메일·거래 내용·메모는 전송하지 않습니다.")</p>
     <form method="get" class="month-picker"><label for="report-month">조회 월</label><input id="report-month" name="month" value="@Model.Month" type="month" max="@Model.CurrentMonth" required /><button class="secondary">조회</button></form>
     @if (TempData["ReportMessage"] is string notice) { <p class="notice" role="status">@notice</p> }
-    @if (Model.Message is { } error) { <p class="validation" role="alert">@error</p> }
-    <form method="post" class="report-request"><input type="hidden" name="Month" value="@Model.Month" /><button class="primary" type="submit">@(Model.IsMock ? "모의 리포트 생성 / 갱신" : "분석 요청 / 갱신")</button><p class="dashboard-note">하루 분석 시도 한도를 적용합니다. 같은 거래 버전·날짜·설정의 저장 결과는 한도 차감 없이 재사용합니다.</p></form>
+    @if (Model.Message is { } error) { <div class="validation" role="alert"><p>@error</p><a class="secondary" asp-page="/Reports/Index" asp-route-month="@Model.Month">다시 조회하기</a> <a class="secondary" asp-page="/Transactions/Index" asp-route-month="@Model.Month">거래 확인하기</a></div> }
+    @if (Model.CanRequest) {
+        <form method="post" class="report-request"><input type="hidden" name="Month" value="@Model.Month" /><button class="primary" type="submit">@(Model.IsMock ? "모의 리포트 생성 / 갱신" : Model.IsStub ? "테스트 리포트 생성 / 갱신" : "분석 요청 / 갱신")</button><p class="dashboard-note" id="report-progress" role="status" aria-live="polite">하루 분석 시도 한도를 적용합니다. 같은 거래 버전·날짜·설정의 저장 결과는 한도 차감 없이 재사용합니다.</p></form>
+    }
     @if (Model.Saved is { } saved)
     {
         ViewData["ReportInput"] = saved.Input;
-        <div class="report-meta"><span class="badge">@(saved.Mode == "mock" ? "모의 리포트 · 실제 AI 아님" : "분석 서비스 리포트")</span><span>@saved.GeneratedAt.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-dd HH:mm") 생성 · 기준일 @saved.AsOfDate.ToString("yyyy-MM-dd")</span></div>
+        <div class="report-meta"><span class="badge">@(saved.Mode == "mock" ? "모의 리포트 · 실제 AI 아님" : saved.IsStub ? "Python 테스트 리포트 · 실제 AI 아님" : "분석 서비스 리포트")</span><span>@saved.GeneratedAt.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-dd HH:mm") 생성 · 기준일 @saved.AsOfDate.ToString("yyyy-MM-dd")</span></div>
         @if (saved.NeedsRefresh) { <p class="notice" role="status">재분석이 필요합니다. @string.Join(" ", saved.RefreshReasons) 기존 결과를 최신 분석으로 해석하지 마세요.</p> }
         <div class="summary-grid"><article class="stat-card"><span>분석 당시 수입</span><strong>@saved.Input.Facts.Single(x => x.Id == "income.total").Value?.ToString("N0")원</strong></article><article class="stat-card"><span>분석 당시 지출</span><strong>@saved.Input.Facts.Single(x => x.Id == "expense.total").Value?.ToString("N0")원</strong></article><article class="stat-card"><span>분석 당시 월간 수지</span><strong>@saved.Input.Facts.Single(x => x.Id == "net.total").Value?.ToString("N0")원</strong></article></div>
         <section class="dashboard-card"><h2>월간 요약</h2><partial name="_Statement" model="saved.Report.Summary" /></section>
@@ -20,7 +23,7 @@
         }
         <section class="dashboard-card"><h2>분석의 범위와 한계</h2><ul>@foreach (var limit in saved.Input.Limitations) { <li>@limit</li> }</ul><p class="dashboard-note">AI 문장의 사실성까지 근거 ID만으로 보장할 수 없습니다. 수치는 통계 화면과 함께 확인해주세요.</p></section>
     }
-    else { <section class="dashboard-card"><h2>저장된 리포트가 없습니다.</h2><p>거래를 기록한 월을 선택하고 리포트를 생성해보세요.</p></section> }
+    else if (Model.Message is null) { <section class="dashboard-card"><h2>저장된 리포트가 없습니다.</h2><p>거래를 기록한 월을 선택하고 리포트를 생성해보세요.</p><a class="secondary" asp-page="/Transactions/Create">첫 거래 기록하기 →</a></section> }
     <a class="secondary" asp-page="/Dashboard/Index" asp-route-month="@Model.Month">현재 통계 확인 →</a>
 </section>
 <script src="~/js/report-form.js" asp-append-version="true" defer></script>

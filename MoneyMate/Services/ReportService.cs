@@ -14,6 +14,7 @@ public sealed class ReportService(MoneyMateDbContext db, StatisticsService stati
     ILogger<ReportService> logger)
 {
     public bool IsMock => configured.Value.Mode == "Mock";
+    public bool IsStub => !IsMock && configured.Value.ModelKey == "partner-stub-local-v1";
     private string ModelKey => (IsMock ? "mock:" : "http:") + configured.Value.ModelKey;
     public Task<ReportResult> GenerateAsync(string owner, string month, CancellationToken ct) => SafeAsync(() => GenerateCoreAsync(owner, month, ct));
     public Task<ReportResult> LatestAsync(string owner, string month, CancellationToken ct) => SafeAsync(async () =>
@@ -85,7 +86,8 @@ public sealed class ReportService(MoneyMateDbContext db, StatisticsService stati
         return new(entity.Id, entity.Month.ToString("yyyy-MM"), entity.GeneratedAt, entity.DataVersion, entity.AsOfDate,
             entity.ModelKey.StartsWith("mock:", StringComparison.Ordinal) ? "mock" : "http", reasons.Count > 0, reasons,
             JsonSerializer.Deserialize<AnalysisInput>(entity.InputSnapshot, AnalysisContract.Json)!,
-            JsonSerializer.Deserialize<AnalysisOutput>(entity.Result, AnalysisContract.Json)!.Report);
+            JsonSerializer.Deserialize<AnalysisOutput>(entity.Result, AnalysisContract.Json)!.Report)
+            { IsStub = entity.ModelKey == "http:partner-stub-local-v1" };
     }
     private async Task<ReportResult> SafeAsync(Func<Task<ReportResult>> action)
     {
