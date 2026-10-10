@@ -2,7 +2,7 @@
 
 실행: uvicorn app.main:create_app --factory --host 127.0.0.1 --port 5090
 서비스 키는 환경변수 ANALYSIS_SERVICE_KEY로만 주입한다.
-ANALYSIS_GENERATOR로 생성기를 고른다: stub(기본) | ollama | claude. 모델은 ANALYSIS_LLM_MODEL.
+ANALYSIS_GENERATOR로 생성기를 고른다: stub(기본) | gemini | ollama | claude. 모델은 ANALYSIS_LLM_MODEL.
 """
 
 import hmac
@@ -22,6 +22,15 @@ from .validation import validate_response
 
 logger = logging.getLogger("moneymate.analysis")
 
+
+def _configure_logging() -> None:
+    # uvicorn은 자기 로거만 설정하므로 앱 로그(토큰·지연 INFO 포함)가 보이도록 핸들러를 붙인다.
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(handler)
+        logger.setLevel(os.environ.get("ANALYSIS_LOG_LEVEL", "INFO"))
+
 __all__ = ["ServiceError", "create_app"]
 
 
@@ -30,6 +39,14 @@ def _generator_from_env() -> ReportGenerator:
     model = os.environ.get("ANALYSIS_LLM_MODEL")
     if kind == "stub":
         return StubReportGenerator()
+    if kind == "gemini":
+        from .gemini import DEFAULT_MODEL, DEFAULT_THINKING_LEVEL, GeminiReportGenerator
+
+        return GeminiReportGenerator(
+            api_key=os.environ.get("GEMINI_API_KEY", ""),
+            model=model or DEFAULT_MODEL,
+            thinking_level=os.environ.get("ANALYSIS_LLM_THINKING", DEFAULT_THINKING_LEVEL),
+        )
     if kind == "ollama":
         from .ollama import DEFAULT_MODEL, DEFAULT_URL, OllamaReportGenerator
 
@@ -39,13 +56,14 @@ def _generator_from_env() -> ReportGenerator:
         from .claude import DEFAULT_EFFORT, DEFAULT_MODEL, ClaudeReportGenerator
 
         return ClaudeReportGenerator(model=model or DEFAULT_MODEL, effort=os.environ.get("ANALYSIS_LLM_EFFORT", DEFAULT_EFFORT))
-    raise RuntimeError("ANALYSIS_GENERATOR는 stub, ollama, claude 중 하나여야 합니다.")
+    raise RuntimeError("ANALYSIS_GENERATOR는 stub, gemini, ollama, claude 중 하나여야 합니다.")
 
 
 def create_app(service_key: Optional[str] = None, generator: Optional[ReportGenerator] = None) -> FastAPI:
     key = service_key if service_key is not None else os.environ.get("ANALYSIS_SERVICE_KEY", "")
     if not key:
         raise RuntimeError("ANALYSIS_SERVICE_KEY 환경변수가 필요합니다.")
+    _configure_logging()
     report_generator = generator or _generator_from_env()
     bearer = HTTPBearer(auto_error=False)
 

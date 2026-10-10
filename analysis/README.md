@@ -1,6 +1,6 @@
 # MoneyMate 파트너 분석 API (Python)
 
-C#이 계산한 월 통계를 받아 근거 ID가 붙은 월간 리포트를 반환하는 내부 HTTP 서비스입니다. 계약 기준은 `docs/api/partner-contract-v1.md`입니다. 생성기는 `ANALYSIS_GENERATOR`로 고릅니다. 기본값 `stub`은 LLM 없이 facts로 문장을 만드는 **규칙 기반 스텁**(C# 연결 확인용), `ollama`는 **로컬 오픈 모델**(무료), `claude`는 **Claude API**(유료)입니다.
+C#이 계산한 월 통계를 받아 근거 ID가 붙은 월간 리포트를 반환하는 내부 HTTP 서비스입니다. 계약 기준은 `docs/api/partner-contract-v1.md`입니다. 생성기는 `ANALYSIS_GENERATOR`로 고릅니다. 기본값 `stub`은 LLM 없이 facts로 문장을 만드는 **규칙 기반 스텁**(C# 연결 확인용)이고, 실제 LLM은 **`gemini`(Gemini API 무료 티어, 권장)**, `ollama`(로컬 오픈 모델), `claude`(Claude API, 유료) 중에서 고릅니다.
 
 - 프레임워크: FastAPI / 포트: 5090 (기획안 후보값)
 - Python 3.9 이상
@@ -47,12 +47,29 @@ $env:Analysis__ServiceKey = '<ANALYSIS_SERVICE_KEY와 같은 값>'
 
 | 환경변수 | 기본값 | 설명 |
 |---|---|---|
-| `ANALYSIS_GENERATOR` | `stub` | `stub`/`ollama`/`claude`. 그 밖의 값이면 시작하지 않습니다. |
-| `ANALYSIS_LLM_MODEL` | `qwen2.5:7b`(ollama), `claude-opus-5-5`(claude) | 바꾸면 C# `Analysis__ModelKey`도 함께 바꿔 캐시를 분리합니다. |
+| `ANALYSIS_GENERATOR` | `stub` | `stub`/`gemini`/`ollama`/`claude`. 그 밖의 값이면 시작하지 않습니다. |
+| `ANALYSIS_LLM_MODEL` | `gemini-3.5-flash-lite`(gemini), `qwen2.5:7b`(ollama), `claude-opus-5-5`(claude) | 바꾸면 C# `Analysis__ModelKey`도 함께 바꿔 캐시를 분리합니다. |
+| `GEMINI_API_KEY` | 없음 | gemini 필수. 없으면 시작하지 않습니다. 헤더로만 보내고 로그에 남기지 않습니다. |
+| `ANALYSIS_LLM_THINKING` | `low` | gemini 전용 thinking 수준. 높이면 느려집니다. |
 | `ANALYSIS_OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama 서버 주소 |
 | `ANALYSIS_LLM_EFFORT` | `low` | claude 전용. 높일수록 느려집니다. |
+| `ANALYSIS_LOG_LEVEL` | `INFO` | 앱 로그 수준. INFO에서 요청별 토큰·지연이 기록됩니다. |
 
-**Ollama (무료, 로컬)**
+**Gemini (권장, 무료 티어)**
+
+1. https://aistudio.google.com/apikey 에서 개인 Google 계정으로 API 키를 발급합니다.
+2. 키를 저장소 밖 파일이나 서버 비밀 설정으로 주입합니다. 문서·소스·채팅에 쓰지 않습니다.
+
+```bash
+export ANALYSIS_GENERATOR=gemini
+export GEMINI_API_KEY='<Gemini API 키>'
+```
+
+- 실측(가상 예제, 2026-10-10): `gemini-3.5-flash-lite` 요청 8회 모두 200·계약 검증 통과, 2~3초. `gemini-3.8-flash`는 무료 티어에서 56초 이상·시간 초과가 잦아 기본값에서 제외했습니다.
+- 무료 티어는 입력이 Google 제품 개선에 쓰일 수 있고 분당·일일 호출 한도가 있습니다. 한도를 넘으면 429 → 503 `llm_unavailable`(C# 1회 재시도)입니다. 보내는 데이터는 월 통계뿐이며 개인 식별 정보는 계약상 포함되지 않습니다.
+- 운영에서 데이터 활용을 막거나 한도를 늘리려면 유료 티어로 전환합니다(코드 변경 없음).
+
+**Ollama (무료, 로컬)** — 이 Mac에서는 C# 시간 제한을 맞추기 어려워 보조 수단으로 둡니다.
 
 ```bash
 brew install ollama          # Windows는 https://ollama.com 설치 파일
@@ -77,7 +94,8 @@ export ANALYSIS_GENERATOR=ollama
 **표본 확인**: 가상 예제(완료된 월·진행 중인 월·전월 기록 없음)로 실제 모델을 호출해 문장·계약 검증·지연을 출력합니다.
 
 ```bash
-.venv/bin/python -m tools.sample_reports --model qwen2.5:7b
+.venv/bin/python -m tools.sample_reports --provider gemini
+.venv/bin/python -m tools.sample_reports --provider ollama --model qwen2.5:7b
 ```
 
 ## 검증
@@ -97,6 +115,7 @@ analysis/
     validation.py   # 응답 계약 검증: 개수·길이(UTF-16)·근거 ID·64 KiB
     generators.py   # ReportGenerator 인터페이스, StubReportGenerator
     prompt.py       # LLM 공통: 프롬프트(monthly-v1), 출력 스키마, 응답 변환
+    gemini.py       # GeminiReportGenerator: Gemini API 호출, 오류 매핑
     ollama.py       # OllamaReportGenerator: 로컬 모델 호출, 오류 매핑
     claude.py       # ClaudeReportGenerator: Claude API 호출, 오류 매핑
     errors.py       # ServiceError(status, code)
@@ -113,8 +132,8 @@ analysis/
 | 정상 | 200 | 응답 검증 후 저장 |
 | 입력 계약 위반 | 400 `invalid_request` | 502, 재시도 없음 |
 | 서비스 키 없음/불일치 | 401 `unauthorized` | 502, 재시도 없음 |
-| 생성기 일시 장애: LLM 연결 실패·시간 초과·5xx(Claude는 408/409/429 포함) (`llm_unavailable`) | 503 | 같은 requestId로 1회 재시도 |
-| LLM 요청 오류(400/401/403/404, Ollama 모델 미설치 등, `llm_request_failed`), 거절(`llm_refused`), 잘림·잘못된 JSON(`llm_invalid_output`) | 500 | 502, 재시도 없음 |
+| 생성기 일시 장애: LLM 연결 실패·시간 초과·5xx·429(Ollama 제외, Claude는 408/409 포함) (`llm_unavailable`) | 503 | 같은 requestId로 1회 재시도 |
+| LLM 요청 오류(400/401/403/404, 키 오류·모델 미설치 등, `llm_request_failed`), 거절·안전 필터(`llm_refused`), 잘림·잘못된 JSON(`llm_invalid_output`) | 500 | 502, 재시도 없음 |
 | 생성기 예외·출력 계약 위반 | 500 | 502, 재시도 없음 |
 
 오류 응답에는 `code`만 포함하고 내부 예외, 요청 통계, 키를 반환하거나 로그에 남기지 않습니다. 생성기 예외는 메시지·스택 없이 `requestId`, 오류 코드, 예외 유형 이름만 기록하고, 출력 계약 위반은 위반 위치만 기록합니다.
@@ -131,6 +150,6 @@ analysis/
 
 ## 다음 단계
 
-1. 지연 대응 결정: 로컬 모델이 20초 제한 경계/초과이므로 더 작은 모델, C# 시간 제한 조정, 배포 서버 사양 중 하나를 정합니다. 모델·프롬프트 변경 시 C# `ModelKey`/`PromptVersion`도 함께 변경합니다.
+1. C# ↔ Python(gemini) 연결 검증 후 C# `Analysis__ModelKey`를 사용 모델에 맞게 정합니다. 모델·프롬프트 변경 시 C# `ModelKey`/`PromptVersion`도 함께 변경합니다.
 2. 출력 사실성 검증: 문장 수치·기간과 근거 값 일치, 금지 단정 표현 검사.
 3. 운영: 동일 `requestId` 처리 중/완료 식별.

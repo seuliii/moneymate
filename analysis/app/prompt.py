@@ -7,7 +7,7 @@ import json
 from decimal import Decimal
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .contracts import CONTRACT_VERSION, MonthlyReportRequest, MonthlyReportResponse, ReportContent, ReportStatement
 from .errors import ServiceError
@@ -22,7 +22,7 @@ SYSTEM_PROMPT = """당신은 가계부 서비스 MoneyMate의 월간 지출 리�
 작성 규칙:
 - 모든 수치·기간은 facts와 categories 값을 그대로 씁니다. 새로 계산하거나 반올림을 바꾸지 않습니다. 금액은 "154,500원"처럼 씁니다.
 - facts는 {id: 값} 형태입니다. id가 .share/.rate로 끝나거나 comparison.rate이면 단위는 %, 나머지는 원입니다.
-- 각 문장의 evidence_ids에는 그 문장이 인용한 facts의 id만 넣습니다. citableFactIds 목록에 없는 id(값이 null인 fact 포함)는 쓰지 않습니다.
+- 모든 문장에 evidence_ids를 1개 이상 넣습니다. evidence_ids에는 그 문장이 인용한 facts의 id만 넣습니다. citableFactIds 목록에 없는 id(값이 null인 fact 포함)는 쓰지 않습니다.
 - null 값은 비교할 수 없다는 뜻입니다. 0으로 해석하거나 증감을 말하지 않습니다.
 - comparison.status가 comparable일 때만 증감을 말하고, 이때 comparisonLabel의 표현(예: "전월" 또는 "전월 같은 기간")을 그대로 씁니다. comparable이 아니면 전월 금액·증감·증감률을 말하지 않습니다.
 - 사용자 성향, 예산, 제공되지 않은 장기 추세나 원인은 추정하거나 언급하지 않습니다. "낭비", "과소비", "주의" 같은 평가·경고 표현을 쓰지 않습니다.
@@ -37,19 +37,19 @@ SYSTEM_PROMPT = """당신은 가계부 서비스 MoneyMate의 월간 지출 리�
 - suggestions: 기록·확인 습관 수준의 가벼운 제안. 근거가 된 fact를 인용합니다."""
 
 
+# 개수 제한은 스키마(minItems/maxItems)로 모델에 알리고, 계약 전체(근거 ID 존재·길이)는 main의 validate_response가 다시 확인한다.
 class _Statement(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str
-    evidence_ids: List[str]
+    evidence_ids: List[str] = Field(min_length=1, max_length=20)
 
 
-# 모델 출력 스키마. 개수·길이·근거 ID 제한은 main의 validate_response가 다시 확인한다.
 class ReportOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     summary: _Statement
-    highlights: List[_Statement]
-    changes_to_review: List[_Statement]
-    suggestions: List[_Statement]
+    highlights: List[_Statement] = Field(max_length=3)
+    changes_to_review: List[_Statement] = Field(max_length=3)
+    suggestions: List[_Statement] = Field(max_length=3)
 
 
 def _comparison_label(request: MonthlyReportRequest) -> str:

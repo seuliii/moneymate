@@ -1,7 +1,8 @@
 """실제 LLM으로 표본 리포트를 만들어 계약 검증·지연을 확인한다.
 
-사용 (analysis 폴더에서, Ollama 실행 중):
-    .venv/bin/python -m tools.sample_reports --model qwen2.5:7b
+사용 (analysis 폴더에서):
+    .venv/bin/python -m tools.sample_reports --provider gemini            # GEMINI_API_KEY 필요
+    .venv/bin/python -m tools.sample_reports --provider ollama --model qwen2.5:7b
 표본은 저장소 예제(완료된 9월)와, 이를 바꾼 진행 중인 월·전월 기록 없음 상황이다.
 생성 문장을 화면에 출력하므로 가상 예제 데이터로만 실행한다.
 """
@@ -9,12 +10,13 @@
 import argparse
 import copy
 import json
+import os
 import time
 from pathlib import Path
 
 from app.contracts import MonthlyReportRequest
 from app.errors import ServiceError
-from app.ollama import DEFAULT_MODEL, DEFAULT_URL, OllamaReportGenerator
+from app import gemini, ollama
 from app.validation import validate_response
 
 EXAMPLE = Path(__file__).resolve().parents[2] / "docs" / "api" / "examples" / "monthly-request.json"
@@ -47,12 +49,19 @@ def samples() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--provider", choices=["gemini", "ollama"], default="gemini")
+    parser.add_argument("--model")
+    parser.add_argument("--thinking", default=gemini.DEFAULT_THINKING_LEVEL, help="gemini 전용")
     parser.add_argument("--timeout", type=float, default=60.0, help="표본 확인용이라 운영(20초)보다 길게 둔다.")
     args = parser.parse_args()
 
-    generator = OllamaReportGenerator(base_url=args.url, model=args.model, timeout_seconds=args.timeout)
+    if args.provider == "gemini":
+        generator = gemini.GeminiReportGenerator(
+            api_key=os.environ.get("GEMINI_API_KEY", ""), model=args.model or gemini.DEFAULT_MODEL,
+            thinking_level=args.thinking, timeout_seconds=args.timeout,
+        )
+    else:
+        generator = ollama.OllamaReportGenerator(model=args.model or ollama.DEFAULT_MODEL, timeout_seconds=args.timeout)
     for name, payload in samples().items():
         request = MonthlyReportRequest.model_validate(payload)
         started = time.monotonic()
