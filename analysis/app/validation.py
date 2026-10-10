@@ -24,7 +24,9 @@ def _check_statement(path: str, item: ReportStatement, citable: set, errors: Lis
         errors.append(f"{path}.evidenceIds: 1~{MAX_EVIDENCE_IDS}개여야 합니다.")
     for evidence_id in item.evidence_ids:
         if evidence_id not in citable:
-            errors.append(f"{path}.evidenceIds: 인용할 수 없는 근거 '{evidence_id}'.")
+            # 출력 값은 로그로 이어지므로 생성기가 만든 ID 문자열을 메시지에 넣지 않는다.
+            errors.append(f"{path}.evidenceIds: 인용할 수 없는 근거가 있습니다.")
+            break
 
 
 def validate_response(

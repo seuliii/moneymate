@@ -41,7 +41,7 @@ $env:Analysis__ServiceKey = '<ANALYSIS_SERVICE_KEY와 같은 값>'
 .venv/bin/python -m pytest
 ```
 
-저장소 예제 JSON 파싱, 응답 계약 검증(C# `AnalysisContract.Valid`와 같은 기준), 서비스 키 인증, 입력 오류 400, 생성 실패 상태 코드, 전월 기록 없음·지출 0원 처리를 확인합니다.
+저장소 예제 JSON 파싱, 응답 계약 검증(C# `AnalysisContract.Valid`와 같은 기준), 서비스 키 인증, 입력 오류 400, 월·기간 의미 검증, 생성 실패 상태 코드와 로그 비노출, 전월 기록 없음·지출 0원 처리, 진행 중인 월의 비교 문구를 확인합니다.
 
 ## 구조
 
@@ -65,7 +65,17 @@ analysis/
 | 생성기 일시 장애 (`ServiceError(503, ...)`) | 503 | 같은 requestId로 1회 재시도 |
 | 생성기 예외·출력 계약 위반 | 500 | 502, 재시도 없음 |
 
-오류 응답에는 `code`만 포함하고 내부 예외, 요청 통계, 키를 반환하거나 로그에 남기지 않습니다.
+오류 응답에는 `code`만 포함하고 내부 예외, 요청 통계, 키를 반환하거나 로그에 남기지 않습니다. 생성기 예외는 메시지·스택 없이 `requestId`, 오류 코드, 예외 유형 이름만 기록하고, 출력 계약 위반은 위반 위치만 기록합니다.
+
+입력은 형식 외에 C# `StatisticsCalculator`와 같은 기준으로 의미를 검증하며, 어긋나면 400입니다.
+
+- `month`는 실제 월(01~12)이고 `period.start`는 그 달 1일
+- `period.days`는 종료일 포함 일수와 같고 기간은 한 달 안에 있음
+- 완료된 월은 말일까지·`full_month`, 진행 중인 월은 `asOfDate`까지·`same_day`
+- `previousPeriod`는 전월 1일부터 전체 달(또는 같은 일자, 전월 말일 상한)까지이며 `differentDayCounts`가 일수 비교와 일치
+- 비교 가능 상태(`comparable`, `zero_previous_expense`)에는 `previousPeriod`가 있음
+
+스텁 생성기는 진행 중인 월이면 요약과 카테고리 변화 모두 “전월 같은 기간”, 완료된 월이면 “전월”과 비교한다고 표현합니다.
 
 ## 다음 단계
 

@@ -47,7 +47,7 @@ def test_request_rejects_unknown_field_and_version(request_json):
 
 
 def test_request_accepts_null_comparison(request_json):
-    request_json["comparison"] = {"status": "no_previous_records", "mode": "same_day", "previousPeriod": None, "differentDayCounts": False}
+    request_json["comparison"] = {"status": "no_previous_records", "mode": "full_month", "previousPeriod": None, "differentDayCounts": False}
     for fact in request_json["facts"]:
         if fact["id"].startswith("comparison.") or fact["id"].endswith((".delta", ".rate")):
             fact["value"] = None
@@ -143,3 +143,88 @@ def test_missing_service_key_fails_fast(monkeypatch):
     monkeypatch.delenv("ANALYSIS_SERVICE_KEY", raising=False)
     with pytest.raises(RuntimeError):
         create_app()
+
+
+def test_generator_failure_log_excludes_exception_details(request_json, caplog):
+    secret = "가짜-민감-문구-식비-154500"
+
+    class Leaky:
+        def generate(self, request):
+            raise RuntimeError(secret)
+
+    client = TestClient(create_app(service_key=KEY, generator=Leaky()), raise_server_exceptions=False)
+    with caplog.at_level("DEBUG"):
+        assert client.post(PATH, json=request_json, headers=AUTH).status_code == 500
+    assert secret not in caplog.text
+    assert "type=RuntimeError" in caplog.text and "code=generation_failed" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
+def test_invalid_output_log_excludes_generated_values(request_json, caplog):
+    class Invalid:
+        def generate(self, request):
+            response = MonthlyReportResponse.model_validate(load("monthly-response.json"))
+            return _with_summary(response, "x", ["가짜-민감-근거"])
+
+    client = TestClient(create_app(service_key=KEY, generator=Invalid()), raise_server_exceptions=False)
+    with caplog.at_level("DEBUG"):
+        assert client.post(PATH, json=request_json, headers=AUTH).status_code == 500
+    assert "가짜-민감-근거" not in caplog.text
+
+
+# --- 입력 의미 검증 (C# StatisticsCalculator 기준) ---
+
+
+def _current_month_request(request_json: dict) -> dict:
+    """2026-10-10 기준 진행 중인 10월 요청. 전월 같은 기간(9/1~9/10)과 비교한다."""
+    request_json.update(asOfDate="2026-10-10", month="2026-10", isCalendarMonthComplete=False)
+    request_json["period"] = {"start": "2026-10-01", "endInclusive": "2026-10-10", "days": 10}
+    request_json["comparison"].update(
+        mode="same_day",
+        previousPeriod={"start": "2026-09-01", "endInclusive": "2026-09-10", "days": 10},
+        differentDayCounts=False,
+    )
+    return request_json
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda r: r.update(month="2026-99"),
+        lambda r: r.update(month="2026-08"),
+        lambda r: r["period"].update(days=999),
+        lambda r: r["period"].update(endInclusive="2026-10-02", days=32),
+        lambda r: r["period"].update(start="2026-09-02", days=29),
+        lambda r: r["period"].update(endInclusive="2026-09-29", days=29),
+        lambda r: r.update(isCalendarMonthComplete=False),
+        lambda r: r["comparison"].update(mode="same_day"),
+        lambda r: r["comparison"]["previousPeriod"].update(days=30),
+        lambda r: r["comparison"].update(differentDayCounts=False),
+        lambda r: r["comparison"].update(previousPeriod=None),
+    ],
+)
+def test_semantically_invalid_request_is_400(client, request_json, mutate):
+    mutate(request_json)
+    response = client.post(PATH, json=request_json, headers=AUTH)
+    assert response.status_code == 400
+    assert response.json() == {"code": "invalid_request"}
+
+
+def test_current_month_request_is_accepted_and_worded_consistently(client, request_json):
+    response = client.post(PATH, json=_current_month_request(request_json), headers=AUTH)
+    assert response.status_code == 200
+    report = response.json()["report"]
+    assert "전월 같은 기간보다" in report["summary"]["text"]
+    assert report["changesToReview"]
+    assert all("전월 같은 기간보다" in item["text"] for item in report["changesToReview"])
+
+
+def test_current_month_previous_period_capped_at_month_end(request_json):
+    # 3/31 기준 진행 중인 3월은 2월 말일까지와 비교한다.
+    _current_month_request(request_json)
+    request_json.update(asOfDate="2026-03-31", month="2026-03")
+    request_json["period"] = {"start": "2026-03-01", "endInclusive": "2026-03-31", "days": 31}
+    request_json["comparison"].update(
+        previousPeriod={"start": "2026-02-01", "endInclusive": "2026-02-28", "days": 28}, differentDayCounts=True
+    )
+    MonthlyReportRequest.model_validate(request_json)

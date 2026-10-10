@@ -56,14 +56,19 @@ def create_app(service_key: Optional[str] = None, generator: Optional[ReportGene
             result = report_generator.generate(body)
         except ServiceError:
             raise
-        except Exception:
-            logger.exception("report generation failed: requestId=%s", body.request_id)
+        except Exception as error:
+            # 예외 메시지·스택에는 요청 통계나 LLM 응답이 섞일 수 있어 유형과 코드만 기록한다.
+            logger.error(
+                "report generation failed: requestId=%s code=generation_failed type=%s",
+                body.request_id,
+                type(error).__name__,
+            )
             # 일시 장애(503, C# 1회 재시도)는 생성기가 ServiceError로 직접 알린다.
             raise ServiceError(500, "generation_failed")
         payload = result.model_dump_json(by_alias=True).encode()
         errors = validate_response(body, result, payload)
         if errors:
-            logger.error("invalid report output: requestId=%s errors=%s", body.request_id, errors)
+            logger.error("invalid report output: requestId=%s code=invalid_report_output errors=%s", body.request_id, errors)
             raise ServiceError(500, "invalid_report_output")
         return Response(content=payload, media_type="application/json")
 

@@ -33,6 +33,11 @@ def _month_label(month: str) -> str:
     return f"{int(month[5:])}월"
 
 
+def _comparison_base(request: MonthlyReportRequest) -> str:
+    # 진행 중인 월은 전월 같은 일자까지와 비교하므로 요약·카테고리 문장 모두 같은 표현을 쓴다.
+    return "전월 같은 기간" if request.comparison.mode == "same_day" else "전월"
+
+
 class StubReportGenerator:
     def generate(self, request: MonthlyReportRequest) -> MonthlyReportResponse:
         report = ReportContent(
@@ -50,7 +55,7 @@ class StubReportGenerator:
         text = f"등록된 {month} 지출은 {_won(expense)}입니다."
         evidence = ["expense.total"]
         if delta is not None and request.comparison.status == "comparable":
-            base = "전월 같은 기간" if request.comparison.mode == "same_day" else "전월"
+            base = _comparison_base(request)
             if delta == 0:
                 text = f"등록된 {month} 지출은 {_won(expense)}으로 {base}과 같습니다."
             else:
@@ -78,9 +83,10 @@ class StubReportGenerator:
         if request.comparison.status != "comparable":
             return []
         increased = [c for c in request.categories if c.delta_amount is not None and c.delta_amount > 0]
+        base = _comparison_base(request)
         items = []
         for category in sorted(increased, key=lambda c: c.delta_amount, reverse=True)[:2]:
-            text = f"{category.name} 지출이 전월보다 {_won(Decimal(category.delta_amount))} 증가했습니다. 일회성 지출인지 확인해볼 수 있습니다."
+            text = f"{category.name} 지출이 {base}보다 {_won(Decimal(category.delta_amount))} 증가했습니다. 일회성 지출인지 확인해볼 수 있습니다."
             items.append(ReportStatement(text=text, evidence_ids=[f"category.{category.code}.delta"]))
         return items
 
