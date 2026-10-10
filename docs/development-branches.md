@@ -13,6 +13,8 @@
 
 6단계 `feature/local-integration-runner`는 공동 실행·종료 스크립트와 테스트 안내를 관리한다.
 
+7단계 `feature/report-feedback-and-mobile-layout`는 테스트 분석 표시와 리포트 오류 안내, 모바일 메뉴 및 카드 배치를 관리한다.
+
 파트너 계약의 기준 파일은 docs/api/partner-contract-v1.md, 예제는 docs/api/examples/monthly-request.json 및 monthly-response.json이다. Wiki는 이 파일로 연결하는 안내 페이지로 사용해 코드와 계약의 버전이 함께 관리되도록 한다.
 
 현재 로컬 개발 폴더는 MoneyMateDev 하나이며 기존 Git 이력을 연결했다. 이후 작업은 새 브랜치와 dev 대상 PR로 관리한다. 진행 상태는 [개발 현황](development-status.md)을 확인한다.

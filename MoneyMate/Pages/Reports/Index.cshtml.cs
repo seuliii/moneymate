@@ -14,6 +14,8 @@ public sealed class IndexModel(ReportService service, KoreanClock calendar) : Pa
     public SavedReport? Saved { get; private set; }
     public string? Message { get; private set; }
     public bool IsMock => service.IsMock;
+    public bool IsStub => service.IsStub;
+    public bool CanRequest { get; private set; } = true;
     public string CurrentMonth => calendar.CurrentMonth;
     private string Owner => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
     public static string EvidenceLabel(string id, AnalysisInput input)
@@ -37,25 +39,37 @@ public sealed class IndexModel(ReportService service, KoreanClock calendar) : Pa
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (string.IsNullOrEmpty(Month)) Month = CurrentMonth;
+        if (!StatisticsCalculator.TryMonth(Month, calendar.Today, out _)) return InvalidMonth();
         var latest = await service.LatestAsync(Owner, Month, ct);
-        if (latest.Status == 400) return BadRequest(latest.Message ?? "조회 월을 확인해주세요.");
+        if (latest.Status == 400) return InvalidMonth();
         Saved = latest.Value;
-        if (latest.Status == 503) { Message = latest.Message; Response.StatusCode = 503; }
+        if (latest.Status == 503) { Message = latest.Message; Response.StatusCode = 503; CanRequest = false; }
         return Page();
     }
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
-        if (!ModelState.IsValid) return BadRequest();
+        if (!ModelState.IsValid || !StatisticsCalculator.TryMonth(Month, calendar.Today, out _)) return InvalidMonth();
         var result = await service.GenerateAsync(Owner, Month, ct);
         if (result.Status is 200 or 201)
         {
             TempData["ReportMessage"] = result.Status == 200 ? "저장된 리포트를 다시 사용했습니다." : "리포트를 생성했습니다.";
             return RedirectToPage(new { month = Month });
         }
-        if (result.Status == 400 && result.Code != "no_records") return BadRequest(result.Message ?? "조회 월을 확인해주세요.");
+        if (result.Status == 400 && result.Code != "no_records") return InvalidMonth();
         Message = result.Message;
         Response.StatusCode = result.Status;
-        Saved = (await service.LatestAsync(Owner, Month, ct)).Value;
+        var latest = await service.LatestAsync(Owner, Month, ct);
+        Saved = latest.Value;
+        if (latest.Status == 503) CanRequest = false;
+        return Page();
+    }
+
+    private IActionResult InvalidMonth()
+    {
+        Message = "조회 월은 YYYY-MM 형식으로 현재 월까지 선택해주세요.";
+        Month = CurrentMonth;
+        CanRequest = false;
+        Response.StatusCode = 400;
         return Page();
     }
 }
