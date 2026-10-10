@@ -9,7 +9,9 @@
 | 4 | feature/monthly-statistics | 월별 집계, 카테고리, 전월 비교, 홈과 대시보드 |
 | 5 | feature/mock-reports-and-analysis-contract | 모의 리포트, 저장/캐시, HTTP 어댑터, 파트너 계약/JSON |
 
-각 기능 브랜치를 PR #1부터 #4까지 순서대로 dev에 병합했다. main은 변경하지 않는다. 실제 Python/LLM 구현과 서비스 연동 검증은 파트너 서비스 준비 후 진행한다.
+각 기능 브랜치를 PR #1부터 #4까지 순서대로 dev에 병합했다. main은 변경하지 않는다. 파트너 Python 스텁은 PR #6으로 병합했으며 HTTP 공동 연결 검증을 완료했다. 실제 LLM 구현과 공동 검증은 남아 있다.
+
+6단계 `feature/local-integration-runner`는 공동 실행·종료 스크립트와 테스트 안내를 관리한다.
 
 파트너 계약의 기준 파일은 docs/api/partner-contract-v1.md, 예제는 docs/api/examples/monthly-request.json 및 monthly-response.json이다. Wiki는 이 파일로 연결하는 안내 페이지로 사용해 코드와 계약의 버전이 함께 관리되도록 한다.
 

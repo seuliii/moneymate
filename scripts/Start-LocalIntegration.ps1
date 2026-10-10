@@ -35,7 +35,13 @@ New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 function Stop-OwnedProcess($process) {
     if ($null -ne $process -and -not $process.HasExited) {
         # The venv launcher may own a Python child; terminate this launch's entire process tree.
-        & "$env:SystemRoot\System32\taskkill.exe" /PID $process.Id /T /F 2>$null | Out-Null
+        try {
+            & "$env:SystemRoot\System32\taskkill.exe" /PID $process.Id /T /F 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0 -and -not $process.HasExited) {
+                Write-Warning "Could not stop process $($process.Id). Check the service manually."
+            }
+        }
+        catch { Write-Warning "Could not stop process $($process.Id). Check the service manually." }
     }
 }
 
@@ -94,6 +100,6 @@ try {
     throw "A service stopped. Check logs: $logDir"
 }
 finally {
-    Stop-OwnedProcess $webProcess
-    Stop-OwnedProcess $pythonProcess
+    try { Stop-OwnedProcess $webProcess }
+    finally { Stop-OwnedProcess $pythonProcess }
 }
