@@ -2,9 +2,9 @@
 
 [개발 현황](docs/development-status.md) · [검증 기록](docs/verification.md) · [파트너 계약/JSON](docs/api/partner-contract-v1.md)
 
-C# 웹과 Python 스텁을 함께 실행하려면 [로컬 통합 테스트](docs/local-integration.md)를 따른다. 한 번의 명령으로 HTTP 연결 모드에서 실행하고 Ctrl+C로 함께 종료할 수 있다.
+C# 웹과 Python 분석 서비스를 함께 실행하려면 [로컬 통합 테스트](docs/local-integration.md)를 따른다. 한 번의 명령으로 HTTP 연결 모드에서 실행하고 Ctrl+C로 함께 종료할 수 있다. 기본은 규칙 기반 스텁이며 `-Generator gemini`로 실제 AI(Gemini) 리포트를 생성한다.
 
-회원 기능과 사용자별 거래 등록·조회·수정·삭제 화면/API를 제공합니다. 월·유형·카테고리 필터와 페이지 이동을 지원합니다. 로그인하면 홈 실제 합계와 월별 통계 대시보드를 제공합니다. 모의 소비 리포트와 파트너 HTTP 연결 준비를 제공합니다. 실제 Python/LLM은 파트너 담당입니다.
+회원 기능과 사용자별 거래 등록·조회·수정·삭제 화면/API를 제공합니다. 월·유형·카테고리 필터와 페이지 이동을 지원합니다. 로그인하면 홈 실제 합계와 월별 통계 대시보드를 제공합니다. 모의 소비 리포트와 파트너 Python 분석 서비스(HTTP) 연결을 제공합니다. Python 서비스는 스텁 또는 실제 LLM(Gemini 등)으로 리포트를 생성합니다.
 
 회원가입: `/Account/Register` → 로그인: `/Account/Login` → 내 정보: `/Account`. 가입 직후 자동 로그인하지 않으며, 로그인은 브라우저 세션 쿠키로 유지합니다. 이름과 이메일은 현재 로그인 계정에서 조회합니다.
 
@@ -186,4 +186,4 @@ DB 진단은 실제 DB 연결, 미적용 마이그레이션, 카테고리 테이
 
 ## 다음 작업
 
-파트너 FastAPI 스텁의 C# 연결 검증, 실제 LLM 연동과 배포 준비가 남아 있습니다. 최신 상태는 [개발 현황](docs/development-status.md)을 확인하세요. 코드는 dev에 반영되어 있으며 로컬 개발 폴더는 MoneyMateDev 하나로 통일했습니다.
+C# ↔ 실제 AI(Gemini) 공동 통합 검증과 배포 준비가 남아 있습니다. 최신 상태는 [개발 현황](docs/development-status.md)을 확인하세요. 코드는 dev에 반영되어 있으며 로컬 개발 폴더는 MoneyMateDev 하나로 통일했습니다.

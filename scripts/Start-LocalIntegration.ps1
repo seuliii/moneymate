@@ -3,6 +3,8 @@
 param(
     [ValidateRange(1024,65535)][int]$WebPort = 5077,
     [ValidateRange(1024,65535)][int]$AnalysisPort = 5090,
+    # stub: rule-based (no LLM). gemini: Gemini API, requires GEMINI_API_KEY in this terminal.
+    [ValidateSet('stub', 'gemini')][string]$Generator = 'stub',
     [switch]$SkipBuild
 )
 
@@ -12,6 +14,9 @@ $pythonPath = Join-Path $root 'analysis\.venv\Scripts\python.exe'
 $webRoot = Join-Path $root 'MoneyMate'
 $dll = Join-Path $webRoot 'bin\Debug\net10.0\MoneyMate.dll'
 if ($WebPort -eq $AnalysisPort) { throw 'WebPort and AnalysisPort must differ.' }
+if ($Generator -eq 'gemini' -and [string]::IsNullOrEmpty($env:GEMINI_API_KEY)) {
+    throw 'GEMINI_API_KEY is not set in this terminal. Follow docs/local-integration.md first.'
+}
 if (-not (Test-Path -LiteralPath $pythonPath)) {
     throw 'Python virtual environment missing. Follow docs/local-integration.md first.'
 }
@@ -23,8 +28,8 @@ foreach ($port in @($WebPort, $AnalysisPort)) {
     finally { $listener.Stop() }
 }
 
-$names = @('ANALYSIS_SERVICE_KEY', 'Analysis__ServiceKey', 'Analysis__Mode', 'Analysis__BaseUrl',
-    'Analysis__ModelKey', 'ASPNETCORE_ENVIRONMENT', 'DOTNET_CLI_HOME', 'NUGET_PACKAGES')
+$names = @('ANALYSIS_SERVICE_KEY', 'ANALYSIS_GENERATOR', 'GEMINI_API_KEY', 'Analysis__ServiceKey', 'Analysis__Mode',
+    'Analysis__BaseUrl', 'Analysis__ModelKey', 'ASPNETCORE_ENVIRONMENT', 'DOTNET_CLI_HOME', 'NUGET_PACKAGES')
 $previous = @{}
 foreach ($name in $names) { $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 $pythonProcess = $null
@@ -61,13 +66,17 @@ try {
         $env:Analysis__ServiceKey = $env:ANALYSIS_SERVICE_KEY
         $env:Analysis__Mode = 'Http'
         $env:Analysis__BaseUrl = "http://127.0.0.1:$AnalysisPort/"
-        # Keep stub caches separate from future LLM reports.
-        $env:Analysis__ModelKey = 'partner-stub-local-v1'
+        # Separate model keys keep stub and LLM report caches apart; the web UI marks partner-stub-local-v1 as a stub.
+        $env:Analysis__ModelKey = if ($Generator -eq 'gemini') { 'gemini-3.5-flash-lite-monthly-v1' } else { 'partner-stub-local-v1' }
+        $env:ANALYSIS_GENERATOR = $Generator
         $env:ASPNETCORE_ENVIRONMENT = 'Development'
         $pythonProcess = Start-Process -FilePath $pythonPath -WorkingDirectory (Join-Path $root 'analysis') `
             -ArgumentList "-m uvicorn app.main:create_app --factory --host 127.0.0.1 --port $AnalysisPort" `
             -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'python.out.log') `
             -RedirectStandardError (Join-Path $logDir 'python.err.log')
+        # Only Python needs the Gemini key; do not pass it to the web process. Restored in finally.
+        $env:GEMINI_API_KEY = $null
+        $env:ANALYSIS_GENERATOR = $null
         $webProcess = Start-Process -FilePath $dotnetPath -WorkingDirectory $webRoot `
             -ArgumentList "bin/Debug/net10.0/MoneyMate.dll --urls http://localhost:$WebPort" `
             -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logDir 'web.out.log') `
@@ -93,7 +102,8 @@ try {
     if ($database.status -ne 'ready') { throw 'Database is not ready. Check local DB configuration and migrations.' }
     Write-Host "Web: http://localhost:$WebPort/Account/Login"
     Write-Host "Python: http://127.0.0.1:$AnalysisPort/docs"
-    Write-Host 'Mode: HTTP / rule-based stub (no LLM). Database: ready.'
+    if ($Generator -eq 'gemini') { Write-Host 'Mode: HTTP / Gemini API (gemini-3.5-flash-lite). Database: ready.' }
+    else { Write-Host 'Mode: HTTP / rule-based stub (no LLM). Database: ready.' }
     Write-Host "Logs: $logDir"
     Write-Host 'Keep this terminal open. Press Ctrl+C to stop both services.'
     while (-not $pythonProcess.HasExited -and -not $webProcess.HasExited) { Start-Sleep -Seconds 1 }
