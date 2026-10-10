@@ -15,8 +15,8 @@
 ## 현재 기준과 남은 작업
 
 - C# 웹은 기본 Mock 모드다. Python HTTP 어댑터가 준비되어 있지만 실제 C# ↔ Python 연결 검증은 아직 완료하지 않았다.
-- 파트너는 별도 `feature/partner-analysis-service` 브랜치에 FastAPI 스텁을 추가했다. Python 단독 검증 결과는 [파트너 Wiki](https://github.com/seuliii/moneymate/wiki/파트너-분석-서비스)에 기록되어 있다. dev 병합/공동 연동 검증과 실제 LLM 구현은 남아 있다.
-- 다음 순서: 파트너 PR 검토 및 스텁 연결 → LLM/출력 사실성 검증 → 실제 서비스 공동 통합 검증 → 배포 준비.
+- 파트너 FastAPI 스텁(`analysis/`)을 dev에 병합했다. 예외 로그는 유형·코드만 남기고, 월·기간 의미 검증과 비교 기간 문구 통일을 반영했다. Python 단독 검증 결과는 [파트너 Wiki](https://github.com/seuliii/moneymate/wiki/파트너-분석-서비스)에 기록되어 있다. 공동 연동 검증과 실제 LLM 구현은 남아 있다.
+- 다음 순서: C# ↔ 스텁 연결 검증 → LLM/출력 사실성 검증 → 실제 서비스 공동 통합 검증 → 배포 준비.
 - 계약 필드/버전, 키 공유·교체, requestId 보존 방식과 모델/프롬프트 변경 규칙을 파트너와 확정한다. 상세 규칙은 [API 계약](api/partner-contract-v1.md)을 기준으로 한다.
 - 분석 시도 한도·진행 가드는 단일 프로세스 메모리다. 재시작 시 초기화되며 다중 인스턴스/운영 비용 통제에는 공유 저장소·잠금이 필요하다.
 - 운영 전 HTTPS, 비밀 설정, DB 최소 권한·백업, Data Protection 키와 프록시/요청 제한 설정을 검증한다.

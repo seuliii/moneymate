@@ -157,7 +157,7 @@ DB 접속/조회 장애 시 통계 API는 503 및 `statistics_unavailable`, 대�
 
 기본 Analysis 모드는 Mock이며 실제 외부 AI 전송은 없습니다. 실제 Http 모드 설정, 파트너 요청/응답 규격과 가상 JSON은 `docs/api/partner-contract-v1.md`를 참고하세요. 하루 기본 5회와 동시 분석 가드는 단일 프로세스 메모리 기준이며 운영 공유 저장소는 후속입니다. API 키는 환경변수/비밀 저장소만 사용합니다.
 
-계약/HTTP 모의 검증은 `dotnet run --project tests/AnalysisChecks`입니다. 기본 DB 마이그레이션에 리포트 테이블이 있어 DB 초기화 재실행은 필요 없습니다.
+계약/HTTP 모의 검증은 `dotnet run --project tests/AnalysisChecks`입니다. 파트너 Python 서비스의 실행과 검증은 `analysis/README.md`를 참고하세요. 기본 DB 마이그레이션에 리포트 테이블이 있어 DB 초기화 재실행은 필요 없습니다.
 
 ## 통합 검증
 
