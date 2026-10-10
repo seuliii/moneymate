@@ -2,7 +2,7 @@
 
 실행: uvicorn app.main:create_app --factory --host 127.0.0.1 --port 5090
 서비스 키는 환경변수 ANALYSIS_SERVICE_KEY로만 주입한다.
-ANALYSIS_GENERATOR=llm이면 Claude 생성기를 쓴다(기본 stub). 모델·effort는 ANALYSIS_LLM_MODEL·ANALYSIS_LLM_EFFORT.
+ANALYSIS_GENERATOR로 생성기를 고른다: stub(기본) | ollama | claude. 모델은 ANALYSIS_LLM_MODEL.
 """
 
 import hmac
@@ -27,17 +27,19 @@ __all__ = ["ServiceError", "create_app"]
 
 def _generator_from_env() -> ReportGenerator:
     kind = os.environ.get("ANALYSIS_GENERATOR", "stub")
+    model = os.environ.get("ANALYSIS_LLM_MODEL")
     if kind == "stub":
         return StubReportGenerator()
-    if kind == "llm":
-        # anthropic SDK는 LLM 모드에서만 불러온다. 자격 증명은 SDK 기본값(ANTHROPIC_API_KEY 등)을 따른다.
-        from .llm import DEFAULT_EFFORT, DEFAULT_MODEL, LlmReportGenerator
+    if kind == "ollama":
+        from .ollama import DEFAULT_MODEL, DEFAULT_URL, OllamaReportGenerator
 
-        return LlmReportGenerator(
-            model=os.environ.get("ANALYSIS_LLM_MODEL", DEFAULT_MODEL),
-            effort=os.environ.get("ANALYSIS_LLM_EFFORT", DEFAULT_EFFORT),
-        )
-    raise RuntimeError("ANALYSIS_GENERATOR는 stub 또는 llm이어야 합니다.")
+        return OllamaReportGenerator(base_url=os.environ.get("ANALYSIS_OLLAMA_URL", DEFAULT_URL), model=model or DEFAULT_MODEL)
+    if kind == "claude":
+        # anthropic SDK는 이 모드에서만 불러온다. 자격 증명은 SDK 기본값(ANTHROPIC_API_KEY 등)을 따른다.
+        from .claude import DEFAULT_EFFORT, DEFAULT_MODEL, ClaudeReportGenerator
+
+        return ClaudeReportGenerator(model=model or DEFAULT_MODEL, effort=os.environ.get("ANALYSIS_LLM_EFFORT", DEFAULT_EFFORT))
+    raise RuntimeError("ANALYSIS_GENERATOR는 stub, ollama, claude 중 하나여야 합니다.")
 
 
 def create_app(service_key: Optional[str] = None, generator: Optional[ReportGenerator] = None) -> FastAPI:

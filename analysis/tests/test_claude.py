@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 
 from app.contracts import MonthlyReportRequest
 from app.errors import ServiceError
-from app.llm import FALLBACK_BETA, PROMPT_VERSION, LlmReportGenerator, build_user_message
+from app.claude import FALLBACK_BETA, ClaudeReportGenerator
+from app.prompt import PROMPT_VERSION, build_user_message
 from app.main import create_app
 from app.validation import validate_response
 
@@ -63,7 +64,7 @@ def test_generates_contract_valid_report_and_sends_expected_request(request_mode
         captured["body"] = json.loads(http_request.content)
         return httpx.Response(200, json=message_body())
 
-    response = LlmReportGenerator(client=sdk_client(handler)).generate(request_model)
+    response = ClaudeReportGenerator(client=sdk_client(handler)).generate(request_model)
 
     assert validate_response(request_model, response) == []
     assert response.request_id == request_model.request_id
@@ -97,7 +98,7 @@ def test_api_errors_map_to_service_status(request_model, status, expected):
         return httpx.Response(status, json={"type": "error", "error": {"type": "x", "message": "가짜-응답-본문"}})
 
     with pytest.raises(ServiceError) as raised:
-        LlmReportGenerator(client=sdk_client(handler)).generate(request_model)
+        ClaudeReportGenerator(client=sdk_client(handler)).generate(request_model)
     assert raised.value.status == expected
 
 
@@ -106,7 +107,7 @@ def test_connection_failure_is_503_and_logs_no_details(request_model, caplog):
         raise httpx.ConnectError("가짜-연결-오류-상세")
 
     with caplog.at_level("DEBUG", logger="moneymate.analysis"), pytest.raises(ServiceError) as raised:
-        LlmReportGenerator(client=sdk_client(handler)).generate(request_model)
+        ClaudeReportGenerator(client=sdk_client(handler)).generate(request_model)
     assert raised.value.status == 503
     assert "가짜-연결-오류-상세" not in caplog.text
     assert "type=APIConnectionError" in caplog.text
@@ -121,14 +122,14 @@ def test_unusable_model_output_is_500(request_model, report, stop_reason, code):
         return httpx.Response(200, json=message_body(report, stop_reason))
 
     with pytest.raises(ServiceError) as raised:
-        LlmReportGenerator(client=sdk_client(handler)).generate(request_model)
+        ClaudeReportGenerator(client=sdk_client(handler)).generate(request_model)
     assert (raised.value.status, raised.value.code) == (500, code)
 
 
 def test_usage_is_logged_without_report_text(request_model, caplog):
     client = sdk_client(lambda _: httpx.Response(200, json=message_body()))
     with caplog.at_level("INFO", logger="moneymate.analysis"):
-        LlmReportGenerator(client=client).generate(request_model)
+        ClaudeReportGenerator(client=client).generate(request_model)
     assert f"promptVersion={PROMPT_VERSION}" in caplog.text
     assert "inputTokens=1200" in caplog.text and "outputTokens=300" in caplog.text
     assert "154,500원" not in caplog.text
@@ -136,7 +137,7 @@ def test_usage_is_logged_without_report_text(request_model, caplog):
 
 def test_endpoint_rejects_uncitable_evidence_from_model(request_json):
     bad = dict(REPORT, summary={"text": "가짜 문장", "evidence_ids": ["not.in.facts"]})
-    generator = LlmReportGenerator(client=sdk_client(lambda _: httpx.Response(200, json=message_body(bad))))
+    generator = ClaudeReportGenerator(client=sdk_client(lambda _: httpx.Response(200, json=message_body(bad))))
     client = TestClient(create_app(service_key=KEY, generator=generator), raise_server_exceptions=False)
     response = client.post(PATH, json=request_json, headers=AUTH)
     assert response.status_code == 500
@@ -147,6 +148,6 @@ def test_generator_selected_from_env(monkeypatch):
     monkeypatch.setenv("ANALYSIS_GENERATOR", "unknown")
     with pytest.raises(RuntimeError):
         create_app(service_key=KEY)
-    monkeypatch.setenv("ANALYSIS_GENERATOR", "llm")
+    monkeypatch.setenv("ANALYSIS_GENERATOR", "claude")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "fictional-anthropic-key")
     assert create_app(service_key=KEY) is not None
