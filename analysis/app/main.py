@@ -2,6 +2,7 @@
 
 실행: uvicorn app.main:create_app --factory --host 127.0.0.1 --port 5090
 서비스 키는 환경변수 ANALYSIS_SERVICE_KEY로만 주입한다.
+ANALYSIS_GENERATOR=llm이면 Claude 생성기를 쓴다(기본 stub). 모델·effort는 ANALYSIS_LLM_MODEL·ANALYSIS_LLM_EFFORT.
 """
 
 import hmac
@@ -15,23 +16,35 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .contracts import MonthlyReportRequest
+from .errors import ServiceError
 from .generators import ReportGenerator, StubReportGenerator
 from .validation import validate_response
 
 logger = logging.getLogger("moneymate.analysis")
 
+__all__ = ["ServiceError", "create_app"]
 
-class ServiceError(Exception):
-    def __init__(self, status: int, code: str) -> None:
-        self.status = status
-        self.code = code
+
+def _generator_from_env() -> ReportGenerator:
+    kind = os.environ.get("ANALYSIS_GENERATOR", "stub")
+    if kind == "stub":
+        return StubReportGenerator()
+    if kind == "llm":
+        # anthropic SDK는 LLM 모드에서만 불러온다. 자격 증명은 SDK 기본값(ANTHROPIC_API_KEY 등)을 따른다.
+        from .llm import DEFAULT_EFFORT, DEFAULT_MODEL, LlmReportGenerator
+
+        return LlmReportGenerator(
+            model=os.environ.get("ANALYSIS_LLM_MODEL", DEFAULT_MODEL),
+            effort=os.environ.get("ANALYSIS_LLM_EFFORT", DEFAULT_EFFORT),
+        )
+    raise RuntimeError("ANALYSIS_GENERATOR는 stub 또는 llm이어야 합니다.")
 
 
 def create_app(service_key: Optional[str] = None, generator: Optional[ReportGenerator] = None) -> FastAPI:
     key = service_key if service_key is not None else os.environ.get("ANALYSIS_SERVICE_KEY", "")
     if not key:
         raise RuntimeError("ANALYSIS_SERVICE_KEY 환경변수가 필요합니다.")
-    report_generator = generator or StubReportGenerator()
+    report_generator = generator or _generator_from_env()
     bearer = HTTPBearer(auto_error=False)
 
     app = FastAPI(title="MoneyMate Analysis", version="1.0")
